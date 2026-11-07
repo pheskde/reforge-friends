@@ -4,8 +4,8 @@ local _, ns = ...
 ns.PREFIX = "RFFR"
 ns.PROTOCOL = 1
 
--- Teilen ist standardmaessig an: es geht ohnehin nur an Mitglieder der eigenen Liste. Die Questliste bleibt privat.
-local DEFAULTS = { sharing = true, shareQuests = false, showPins = true, showMinimapButton = true, minimapAngle = 210, members = {} }
+-- Teilen und Questliste sind standardmaessig an: es geht ohnehin nur an Mitglieder der eigenen Liste (und nur auf Anfrage).
+local DEFAULTS = { sharing = true, shareQuests = true, showPins = true, showMinimapButton = true, minimapAngle = 210, members = {} }
 
 local LOCALES = {
   enUS = {
@@ -72,8 +72,10 @@ function ns.InitDB(saved, roster, communities)
   ns.db = saved or {}
   ns.communities = communities
   -- Aeltere Staende (Prototyp) hatten Teilen aus als Voreinstellung: einmalig auf den neuen Standard heben.
+  -- Schema 2: die Questliste ist jetzt ebenfalls standardmaessig an, auch bei Staenden, die den alten Standard "aus" gespeichert haben.
   if saved and saved.schema == nil then saved.sharing = nil end
-  ns.db.schema = 1
+  if saved and (saved.schema or 0) < 2 then saved.shareQuests = nil end
+  ns.db.schema = 2
   for key, value in pairs(DEFAULTS) do
     if ns.db[key] == nil then
       ns.db[key] = type(value) == "table" and {} or value

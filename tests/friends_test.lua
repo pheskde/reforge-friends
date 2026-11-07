@@ -35,6 +35,7 @@ local function newGame(name, opts)
   ns.InitDB(opts.saved, opts.roster)
   -- Die Tests gehen vom ausgeschalteten Teilen aus; der Standard "an" wird unten eigens geprueft.
   ns.db.sharing = opts.sharing or false
+  ns.db.shareQuests = opts.shareQuests or false
   ns.Now = function() return game.now end
   ns.SendAddon = function(text, target) game.outbox[#game.outbox + 1] = { text = text, target = target } end
   ns.GetPosition = function()
@@ -243,13 +244,15 @@ do
   local ns = newGame("X").ns
   local db = ns.InitDB(nil, nil)
   check("Teilen ist standardmaessig an", db.sharing == true)
-  check("Questliste ist standardmaessig privat", db.shareQuests == false)
+  check("Questliste ist standardmaessig an", db.shareQuests == true)
   check("Minimap-Symbol ist standardmaessig sichtbar", db.showMinimapButton == true)
 
   local old = ns.InitDB({ sharing = false, members = { Karl = true } }, nil)
   check("Alter Stand ohne schema: Teilen wird einmalig auf an gehoben", old.sharing == true and old.members.Karl == true)
-  local chosen = ns.InitDB({ schema = 1, sharing = false }, nil)
-  check("Bewusst ausgeschaltetes Teilen bleibt aus", chosen.sharing == false)
+  local chosen = ns.InitDB({ schema = 2, sharing = false, shareQuests = false }, nil)
+  check("Bewusst ausgeschaltetes Teilen und Quests bleiben aus", chosen.sharing == false and chosen.shareQuests == false)
+  local v1 = ns.InitDB({ schema = 1, sharing = false, shareQuests = false }, nil)
+  check("Schema 1: Quests werden einmalig auf den neuen Standard gehoben, Teilen bleibt", v1.shareQuests == true and v1.sharing == false and v1.schema == 2)
 
   local x, y = ns.MinimapOffset(0, 100)
   check("Minimap: Winkel 0 liegt rechts", math.abs(x - 100) < 1e-9 and math.abs(y) < 1e-9)

@@ -6,12 +6,12 @@ WoW-Addon für World of Warcraft: Forever (Prototyp 0.3.0). Zeigt die Position d
 
 - Die Addons tauschen **Addon-Flüstern** (`C_ChatInfo.SendAddonMessage`, Typ `WHISPER`, Präfix `RFFR`) direkt zwischen den Spielern aus. Nichts davon läuft über einen Server, und im Chat ist nichts zu sehen.
 - Gesendet und angenommen wird **nur mit Mitgliedern der eigenen Liste**. Nachrichten von anderen werden verworfen.
-- **Teilen ist standardmäßig an**, aber nur mit Mitgliedern der eigenen Liste (ohne Einträge geht nichts raus). Die Questliste ist standardmäßig privat. Wer nur zuschauen will, schaltet das Teilen aus und sieht trotzdem die Pins der anderen.
+- **Teilen ist standardmäßig an**, aber nur mit Mitgliedern der eigenen Liste (ohne Einträge geht nichts raus). Auch die Questliste ist standardmäßig an: sie geht nur auf Anfrage eines Mitglieds heraus (`/rff quests off` macht sie privat). Wer nur zuschauen will, schaltet das Teilen aus und sieht trotzdem die Pins der anderen.
 - **Minimap-Symbol:** Linksklick schaltet das Teilen (grau = aus), Rechtsklick die Pins, Ziehen verschiebt es. `/rff minimap off` blendet es aus.
 - Position alle 5 Sekunden, aber nur bei Änderung oder alle 30 Sekunden als Herzschlag. Ein Pin verschwindet nach 75 Sekunden ohne Nachricht, beim Ausschalten sofort.
 - In Instanzen und Schlachtfeldern liefert das Spiel keine Koordinaten: dann gibt es keinen Pin, `/rff list` zeigt „in einer Instanz“.
 - Ist ein Freund offline, erzeugt das Hallo-Flüstern eine Systemmeldung „Kein Spieler namens …“. Das Addon filtert sie für Listenmitglieder aus dem Chat.
-- Quests: Shift+Mouseover oder Klick auf einen Pin fragt die Questliste an. Der andere antwortet nur, wenn er `quests on` gesetzt hat; sonst meldet das Addon „teilt keine Quests“. Es gehen nur Quest-IDs über die Leitung, die Titel löst dein eigenes Spiel auf.
+- Quests: Shift+Mouseover oder Klick auf einen Pin fragt die Questliste an. Der andere antwortet, solange er die Questliste nicht mit `quests off` privat gemacht hat; dann meldet das Addon „teilt keine Quests“. Es gehen nur Quest-IDs über die Leitung, die Titel löst dein eigenes Spiel auf.
 
 ## Bedienung
 
