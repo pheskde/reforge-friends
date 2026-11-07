@@ -1,6 +1,6 @@
 # reforge Friends
 
-WoW-Addon für World of Warcraft: Forever (Prototyp 0.2.0). Zeigt die Position deiner Community-Freunde auf der Weltkarte, ohne dass ihr in einer Gruppe seid, und auf Wunsch ihre offenen Quests.
+WoW-Addon für World of Warcraft: Forever (Prototyp 0.3.0). Zeigt die Position deiner Community-Freunde auf der Weltkarte, ohne dass ihr in einer Gruppe seid, und auf Wunsch ihre offenen Quests.
 
 ## So funktioniert es
 
@@ -17,7 +17,7 @@ WoW-Addon für World of Warcraft: Forever (Prototyp 0.2.0). Zeigt die Position d
 
 `/rff` oder `/reforgefriends`: `share on|off`, `quests on|off`, `pins on|off`, `minimap on|off`, `add <Name>`, `remove <Name>`, `list`, `status`
 
-Mitglieder trägt man heute von Hand ein. Der reforge-Client soll sie später aus der Community in die Datei `Roster.lua` schreiben (`ReforgeFriendsRoster = { "Name", ... }`, wird beim nächsten Login oder `/reload` geladen). Das Addon liest diese Tabelle schon.
+**Mitglieder:** Der reforge-Client meldet die Charaktere deines WTF-Ordners an den Server und schreibt die Charaktere der Mitglieder deiner Communities in ein eigenes kleines Addon `ReforgeFriendsRoster` (Tabelle `ReforgeFriendsRoster = { "Name", ... }`, alle 10 Minuten aufgefrischt). Dieses Friends-Addon lädt es als `OptionalDeps` und liest die Liste beim nächsten Login oder `/reload`. Der Client tut das nur, wenn dieses Addon installiert ist; ohne es verlassen Charakternamen den PC nicht. Gesehen werden die Namen nur von Mitgliedern gemeinsamer Communities (angenommene Mitgliedschaft). Zusätzlich lassen sich Namen mit `/rff add` von Hand eintragen.
 
 ## Offen / nur im Spiel prüfbar
 
@@ -28,7 +28,7 @@ Die Tests (`tests/friends_test.lua`) prüfen Protokoll, Teilen, Ablauf, Quests u
 3. Stimmen die Pins auf der Weltkarte (Position, Größe beim Zoomen), auch wenn ein Freund in einem Unterbereich steht (Umrechnung über Weltkoordinaten)?
 4. Wird die Offline-Meldung wirklich ausgefiltert?
 
-Noch nicht gebaut: Pins auf der Minimap, Roster-Datei aus dem Client, Wegpunkt zum Freund, Community-/Gruppen-Auswahl im Addon.
+Noch nicht gebaut: Pins auf der Minimap, Wegpunkt zum Freund, Community-/Gruppen-Auswahl im Addon.
 
 ## Entwickeln
 
