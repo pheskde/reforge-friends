@@ -21,11 +21,9 @@ local function tooltip(self)
   GameTooltip:SetOwner(self, "ANCHOR_LEFT")
   GameTooltip:AddLine("reforge Friends", 0.95, 0.48, 0.17)
   GameTooltip:AddLine(L.tipShare:format(ns.db.sharing and L.on or L.off), 1, 1, 1)
-  local members, seen, now = ns.MemberList(), 0, ns.Now()
-  for _, name in ipairs(members) do
-    if ns.PeerOnline(name, now) then seen = seen + 1 end
-  end
-  GameTooltip:AddLine(L.tipOnline:format(seen, #members), 0.8, 0.8, 0.8)
+  local members, characters, seen = ns.CommunityStats(ns.Now())
+  GameTooltip:AddLine(L.tipMembers:format(members, characters), 0.8, 0.8, 0.8)
+  GameTooltip:AddLine(L.tipSeen:format(seen), seen > 0 and 0.27 or 0.6, seen > 0 and 0.87 or 0.6, seen > 0 and 0.4 or 0.6)
   GameTooltip:AddLine(L.tipLeft, 0.6, 0.6, 0.6)
   GameTooltip:AddLine(L.tipOverview, 0.6, 0.6, 0.6)
   GameTooltip:AddLine(L.tipRight, 0.6, 0.6, 0.6)

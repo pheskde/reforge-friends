@@ -21,6 +21,7 @@ local LOCALES = {
     tipShare = "Sharing: %s", tipOnline = "%d of %d members seen", tipLeft = "Left click: sharing on or off", tipRight = "Right click: map pins on or off", tipDrag = "Drag: move the button",
     quests = "Open quests (%d):", questsAsk = "Asking for quests...", questsPrivate = "does not share quests", questsNone = "No quests received.",
     unknownQuest = "Quest %d", noName = "Give a character name.",
+    tipMembers = "%d other member(s), %d character(s)", tipSeen = "%d character(s) seen online",
     ovTitle = "reforge Friends", ovCommunities = "Your communities (%d)", ovNoData = "No community data yet. The reforge client writes it every 10 minutes and after login; then log in again or /reload. It needs client 0.1.7 or newer.",
     ovNoCommunities = "You are not in a community yet. Create or join one in the reforge client.",
     ovYou = "you", ovNoChars = "no characters reported", ovManual = "Added by hand: %s", ovHint = "Green dot: seen online. Characters appear when the member's reforge client has reported them.",
@@ -39,6 +40,7 @@ local LOCALES = {
     tipShare = "Teilen: %s", tipOnline = "%d von %d Mitgliedern gesehen", tipLeft = "Linksklick: Teilen an oder aus", tipRight = "Rechtsklick: Karten-Pins an oder aus", tipDrag = "Ziehen: Symbol verschieben",
     quests = "Offene Quests (%d):", questsAsk = "Frage Quests an...", questsPrivate = "teilt keine Quests", questsNone = "Keine Quests erhalten.",
     unknownQuest = "Quest %d", noName = "Gib einen Charakternamen an.",
+    tipMembers = "%d weitere(s) Mitglied(er), %d Charakter(e)", tipSeen = "%d Charakter(e) online gesehen",
     ovTitle = "reforge Friends", ovCommunities = "Deine Communities (%d)", ovNoData = "Noch keine Community-Daten. Der reforge-Client schreibt sie alle 10 Minuten und nach dem Login; danach neu einloggen oder /reload. Nötig ist Client 0.1.7 oder neuer.",
     ovNoCommunities = "Du bist noch in keiner Community. Lege im reforge-Client eine an oder tritt einer bei.",
     ovYou = "du", ovNoChars = "keine Charaktere gemeldet", ovManual = "Von Hand eingetragen: %s", ovHint = "Grüner Punkt: online gesehen. Charaktere erscheinen, sobald der reforge-Client des Mitglieds sie gemeldet hat.",
@@ -268,4 +270,23 @@ function ns.BuildOverview(now)
   lines[#lines + 1] = L.ovSharing:format(ns.db.sharing and L.on or L.off, ns.db.shareQuests and L.on or L.off)
   lines[#lines + 1] = GREY .. L.ovHint .. "|r"
   return lines
+end
+
+-- Zahlen fuer den Tooltip: andere Mitglieder (ohne dich, ueber alle Communities), deren Charaktere und wie viele davon gerade online gesehen wurden.
+-- Ohne Community-Daten zaehlen nur die Namen der Liste (von Hand eingetragene und Roster), dann gibt es keine Mitgliederzahl.
+function ns.CommunityStats(now)
+  local members, seenMember = 0, {}
+  for _, community in ipairs(type(ns.communities) == "table" and ns.communities or {}) do
+    for _, member in ipairs(community.members or {}) do
+      if not member.you and not seenMember[member.account] then
+        seenMember[member.account] = true
+        members = members + 1
+      end
+    end
+  end
+  local characters, seen = ns.MemberList(), 0
+  for _, name in ipairs(characters) do
+    if ns.PeerOnline(name, now) then seen = seen + 1 end
+  end
+  return members, #characters, seen
 end

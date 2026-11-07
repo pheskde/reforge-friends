@@ -308,5 +308,35 @@ do
   check("/rff help zeigt die Hilfe", g.printed[#g.printed] == g.ns.L.help)
 end
 
+-- Zahlen im Tooltip ---------------------------------------------------------------------------
+do
+  local g = newGame("Anna")
+  local ns = g.ns
+  ns.InitDB(nil, { "Gerda", "Gina", "Gunnar" }, {
+    { name = "Amicus", members = {
+      { account = "Phesk", you = true, characters = { "Emiri", "Timo", "Aracia", "Mikuru", "Nagaru" } },
+      { account = "malin", you = false, characters = { "Gerda", "Gina", "Gunnar" } },
+    } },
+    { name = "Zweite", members = {
+      { account = "Phesk", you = true, characters = {} },
+      { account = "malin", you = false, characters = {} },
+      { account = "Otto", you = false, characters = {} },
+    } },
+  })
+  local members, characters, seen = ns.CommunityStats(g.now)
+  check("Tooltip: andere Mitglieder zaehlen ohne dich und ohne Doppelte", members == 2)
+  check("Tooltip: Charaktere sind die der anderen (deine eigenen nicht)", characters == 3)
+  check("Tooltip: niemand online gesehen", seen == 0)
+  ns.Receive("Gina", "I", g.now)
+  check("Tooltip: online gesehener Charakter wird gezaehlt", select(3, ns.CommunityStats(g.now)) == 1)
+  advance(80, g)
+  check("Tooltip: nach Ablauf wieder 0", select(3, ns.CommunityStats(g.now)) == 0)
+
+  local plain = newGame("Bert").ns
+  plain.db.members.Karl = true
+  local m, c = plain.CommunityStats(0)
+  check("Ohne Community-Daten: keine Mitgliederzahl, aber die Namen der Liste", m == 0 and c == 1)
+end
+
 print(("%d Pruefungen, %d Fehler"):format(checks, failures))
 os.exit(failures == 0 and 0 or 1)
