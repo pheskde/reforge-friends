@@ -1,0 +1,13 @@
+## Interface: 16001
+## Title: |cfff27a2reforge|r Friends
+## Notes: Shows the position of your community friends on the map, without a group. Shares only with your own member list.
+## Notes-deDE: Zeigt die Position deiner Community-Freunde auf der Karte, ohne Gruppe. Geteilt wird nur mit deiner eigenen Mitgliederliste.
+## Author: reforge.win
+## Version: 0.2.0
+## SavedVariables: ReforgeFriendsDB
+
+Core.lua
+Comm.lua
+Map.lua
+Minimap.lua
+Slash.lua
