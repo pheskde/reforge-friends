@@ -9,7 +9,7 @@ local DEFAULTS = { sharing = true, shareQuests = false, showPins = true, showMin
 
 local LOCALES = {
   enUS = {
-    help = "/rff share on|off | quests on|off | pins on|off | minimap on|off | add <name> | remove <name> | list | status",
+    help = "/rff (window) | communities | share on|off | quests on|off | pins on|off | minimap on|off | add <name> | remove <name> | list | status | help",
     sharingOn = "Sharing your position with %d community member(s).", sharingOff = "Sharing is off. Nobody receives your position.",
     questsOn = "Others may now ask for your quest list.", questsOff = "Your quest list is private.",
     pinsOn = "Friend pins shown on the map.", pinsOff = "Friend pins hidden.",
@@ -21,9 +21,13 @@ local LOCALES = {
     tipShare = "Sharing: %s", tipOnline = "%d of %d members seen", tipLeft = "Left click: sharing on or off", tipRight = "Right click: map pins on or off", tipDrag = "Drag: move the button",
     quests = "Open quests (%d):", questsAsk = "Asking for quests...", questsPrivate = "does not share quests", questsNone = "No quests received.",
     unknownQuest = "Quest %d", noName = "Give a character name.",
+    ovTitle = "reforge Friends", ovCommunities = "Your communities (%d)", ovNoData = "No community data yet. The reforge client writes it every 10 minutes and after login; then log in again or /reload. It needs client 0.1.7 or newer.",
+    ovNoCommunities = "You are not in a community yet. Create or join one in the reforge client.",
+    ovYou = "you", ovNoChars = "no characters reported", ovManual = "Added by hand: %s", ovHint = "Green dot: seen online. Characters appear when the member's reforge client has reported them.",
+    ovSharing = "Sharing: %s  |  Quests: %s", ovWindow = "Overview window", tipOverview = "Shift+left click: overview",
   },
   deDE = {
-    help = "/rff share on|off | quests on|off | pins on|off | minimap on|off | add <Name> | remove <Name> | list | status",
+    help = "/rff (window) | communities | share on|off | quests on|off | pins on|off | minimap on|off | add <Name> | remove <Name> | list | status | help",
     sharingOn = "Deine Position geht an %d Community-Mitglied(er).", sharingOff = "Teilen ist aus. Niemand erhält deine Position.",
     questsOn = "Andere dürfen jetzt deine Questliste abfragen.", questsOff = "Deine Questliste ist privat.",
     pinsOn = "Freunde-Pins auf der Karte angezeigt.", pinsOff = "Freunde-Pins ausgeblendet.",
@@ -35,6 +39,10 @@ local LOCALES = {
     tipShare = "Teilen: %s", tipOnline = "%d von %d Mitgliedern gesehen", tipLeft = "Linksklick: Teilen an oder aus", tipRight = "Rechtsklick: Karten-Pins an oder aus", tipDrag = "Ziehen: Symbol verschieben",
     quests = "Offene Quests (%d):", questsAsk = "Frage Quests an...", questsPrivate = "teilt keine Quests", questsNone = "Keine Quests erhalten.",
     unknownQuest = "Quest %d", noName = "Gib einen Charakternamen an.",
+    ovTitle = "reforge Friends", ovCommunities = "Deine Communities (%d)", ovNoData = "Noch keine Community-Daten. Der reforge-Client schreibt sie alle 10 Minuten und nach dem Login; danach neu einloggen oder /reload. Nötig ist Client 0.1.7 oder neuer.",
+    ovNoCommunities = "Du bist noch in keiner Community. Lege im reforge-Client eine an oder tritt einer bei.",
+    ovYou = "du", ovNoChars = "keine Charaktere gemeldet", ovManual = "Von Hand eingetragen: %s", ovHint = "Grüner Punkt: online gesehen. Charaktere erscheinen, sobald der reforge-Client des Mitglieds sie gemeldet hat.",
+    ovSharing = "Teilen: %s  |  Quests: %s", ovWindow = "Übersichtsfenster", tipOverview = "Shift+Linksklick: Übersicht",
   },
 }
 ns.L = LOCALES[GetLocale()] or LOCALES.enUS
@@ -57,9 +65,10 @@ ns.db = nil
 ns.peers = {}
 
 -- `roster` sind Mitglieder, die der Reforge-Client ins Addon schreibt (Roster.lua, Tabelle ReforgeFriendsRoster = { "Name", ... }).
--- Sie kommen zu den von Hand eingetragenen.
-function ns.InitDB(saved, roster)
+-- Sie kommen zu den von Hand eingetragenen. `communities` (ReforgeFriendsCommunities) sind dieselben Mitglieder nach Community gegliedert, nur zur Anzeige.
+function ns.InitDB(saved, roster, communities)
   ns.db = saved or {}
+  ns.communities = communities
   -- Aeltere Staende (Prototyp) hatten Teilen aus als Voreinstellung: einmalig auf den neuen Standard heben.
   if saved and saved.schema == nil then saved.sharing = nil end
   ns.db.schema = 1
@@ -210,4 +219,53 @@ function ns.VisiblePeers(now)
   end
   table.sort(out)
   return out
+end
+
+-- Uebersicht ------------------------------------------------------------------------------------
+-- Baut die Zeilen der Uebersicht (Fenster und /rff communities). Farbcodes sind WoW-Textfarben.
+
+local GREEN, GREY, ORANGE = "|cff44dd66", "|cff888888", "|cfff27a2c"
+
+local function charLine(name, now)
+  local dot = ns.PeerOnline(name, now) and (GREEN .. "*|r ") or (GREY .. "- |r")
+  return dot .. name
+end
+
+function ns.BuildOverview(now)
+  local L = ns.L
+  local lines = {}
+  local communities = ns.communities
+  if type(communities) ~= "table" then
+    lines[#lines + 1] = GREY .. L.ovNoData .. "|r"
+  elseif #communities == 0 then
+    lines[#lines + 1] = GREY .. L.ovNoCommunities .. "|r"
+  else
+    lines[#lines + 1] = ORANGE .. L.ovCommunities:format(#communities) .. "|r"
+    for _, community in ipairs(communities) do
+      lines[#lines + 1] = ""
+      lines[#lines + 1] = "|cffffffff" .. tostring(community.name) .. "|r"
+      for _, member in ipairs(community.members or {}) do
+        local label = tostring(member.account)
+        if member.you then label = label .. " (" .. L.ovYou .. ")" end
+        local chars = {}
+        for _, c in ipairs(member.characters or {}) do chars[#chars + 1] = charLine(c, now) end
+        if #chars == 0 then
+          lines[#lines + 1] = "  " .. label .. ": " .. GREY .. L.ovNoChars .. "|r"
+        else
+          lines[#lines + 1] = "  " .. label .. ": " .. table.concat(chars, ", ")
+        end
+      end
+    end
+  end
+  local manual = {}
+  for name in pairs(ns.db.members) do manual[#manual + 1] = charLine(name, now) end
+  table.sort(manual)
+  if #manual > 0 then
+    lines[#lines + 1] = ""
+    lines[#lines + 1] = L.ovManual:format(table.concat(manual, ", "))
+  end
+  lines[#lines + 1] = ""
+  lines[#lines + 1] = L.ovSharing:format(ns.db.sharing and L.on or L.off, ns.db.shareQuests and L.on or L.off)
+  lines[#lines + 1] = GREY .. L.ovHint .. "|r"
+  return lines
 end

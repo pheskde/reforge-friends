@@ -42,6 +42,12 @@ function ns.Slash(input)
   elseif cmd == "remove" then
     local name, err = ns.RemoveMember(arg)
     ns.Print(err and L[err]:format(name or arg) or L.removed:format(name))
+  elseif cmd == "" or cmd == "window" or cmd == "fenster" then
+    if ns.ToggleOverview then ns.ToggleOverview() else ns.Print(L.help) end
+  elseif cmd == "communities" then
+    for _, line in ipairs(ns.BuildOverview(ns.Now())) do ns.Print(line) end
+  elseif cmd == "help" or cmd == "hilfe" then
+    ns.Print(L.help)
   elseif cmd == "list" then
     local members, now = ns.MemberList(), ns.Now()
     if #members == 0 then return ns.Print(L.listEmpty) end

@@ -27,6 +27,7 @@ local function tooltip(self)
   end
   GameTooltip:AddLine(L.tipOnline:format(seen, #members), 0.8, 0.8, 0.8)
   GameTooltip:AddLine(L.tipLeft, 0.6, 0.6, 0.6)
+  GameTooltip:AddLine(L.tipOverview, 0.6, 0.6, 0.6)
   GameTooltip:AddLine(L.tipRight, 0.6, 0.6, 0.6)
   GameTooltip:AddLine(L.tipDrag, 0.6, 0.6, 0.6)
   GameTooltip:Show()
@@ -70,7 +71,9 @@ local function create()
   border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
 
   button:SetScript("OnClick", function(self, mouse)
-    if mouse == "RightButton" then
+    if mouse == "LeftButton" and IsShiftKeyDown() and ns.ToggleOverview then
+      ns.ToggleOverview()
+    elseif mouse == "RightButton" then
       ns.db.showPins = not ns.db.showPins
       ns.RefreshMap()
       ns.Print(ns.db.showPins and ns.L.pinsOn or ns.L.pinsOff)

@@ -175,7 +175,7 @@ frame:RegisterEvent("PLAYER_LOGOUT")
 local elapsed = 0
 frame:SetScript("OnEvent", function(_, event, a, b, c, d)
   if event == "ADDON_LOADED" and a == "ReforgeFriends" then
-    ReforgeFriendsDB = ns.InitDB(ReforgeFriendsDB, ReforgeFriendsRoster)
+    ReforgeFriendsDB = ns.InitDB(ReforgeFriendsDB, ReforgeFriendsRoster, ReforgeFriendsCommunities)
     if C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix then
       C_ChatInfo.RegisterAddonMessagePrefix(ns.PREFIX)
     elseif RegisterAddonMessagePrefix then

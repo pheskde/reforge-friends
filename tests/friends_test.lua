@@ -13,7 +13,8 @@ end
 
 -- Globale Stubs. Alles Spielabhaengige in den Addon-Dateien ist ueber ns.* ersetzbar, darum reichen einfache Stubs.
 local function frame()
-  return setmetatable({}, { __index = function() return function() end end })
+  -- Jede Methode liefert wieder so ein Objekt (CreateFontString, CreateTexture usw.), damit Fensteraufbau ohne Spiel durchlaeuft.
+  return setmetatable({}, { __index = function() return function() return frame() end end })
 end
 function GetLocale() return "enUS" end
 function GetTime() return 0 end
@@ -26,7 +27,7 @@ ERR_CHAT_PLAYER_NOT_FOUND_S = "No player named '%s' is currently playing."
 local function newGame(name, opts)
   opts = opts or {}
   local ns = {}
-  for _, file in ipairs({ "Core.lua", "Comm.lua", "Minimap.lua", "Slash.lua" }) do
+  for _, file in ipairs({ "Core.lua", "Comm.lua", "Minimap.lua", "Overview.lua", "Slash.lua" }) do
     local chunk = assert(loadfile(ROOT .. file))
     chunk("ReforgeFriends", ns)
   end
@@ -229,8 +230,12 @@ do
   check("Ungueltiger Wert aendert nichts", g.ns.db.sharing == false)
   g.ns.Slash("remove karl")
   check("/rff remove", not g.ns.IsMember("Karl"))
+  g.ns.Slash("hilfe")
+  check("Hilfe wird gezeigt", g.printed[#g.printed] == g.ns.L.help)
+  local opened
+  g.ns.ToggleOverview = function() opened = true end
   g.ns.Slash("")
-  check("Ohne Argument kommt die Hilfe", g.printed[#g.printed] == g.ns.L.help)
+  check("/rff ohne Argument oeffnet das Fenster", opened == true)
 end
 
 -- Standardwerte und Minimap-Symbol --------------------------------------------------------
@@ -255,6 +260,52 @@ do
   local g = newGame("Y")
   g.ns.Slash("minimap off")
   check("/rff minimap off", g.ns.db.showMinimapButton == false)
+end
+
+-- Uebersicht ---------------------------------------------------------------------------------
+do
+  local function text(g) return table.concat(g.ns.BuildOverview(g.now), "\n") end
+  local function has(haystack, needle) return haystack:find(needle, 1, true) ~= nil end
+
+  local g = newGame("Anna")
+  check("Ohne Community-Daten: Hinweis auf den Client", has(text(g), g.ns.L.ovNoData))
+
+  g.ns.InitDB(nil, nil, {})
+  check("Keine Community: eigener Hinweis", has(text(g), g.ns.L.ovNoCommunities))
+
+  local communities = {
+    { name = "Raidgruppe", members = {
+      { account = "Thomas", you = true, characters = { "Emiri", "Timo" } },
+      { account = "Gast", you = false, characters = { "Gerda" } },
+      { account = "Leer", you = false, characters = {} },
+    } },
+    { name = "Zweite", members = {} },
+  }
+  g.ns.InitDB(nil, { "Gerda" }, communities)
+  g.ns.db.sharing = false
+  local out = text(g)
+  check("Uebersicht: Community-Anzahl", has(out, g.ns.L.ovCommunities:format(2)))
+  check("Uebersicht: Community und Mitglieder", has(out, "Raidgruppe") and has(out, "Thomas (" .. g.ns.L.ovYou .. ")") and has(out, "Gast:"))
+  check("Uebersicht: Charaktere stehen da", has(out, "Emiri") and has(out, "Timo") and has(out, "Gerda"))
+  check("Uebersicht: Mitglied ohne Charaktere", has(out, g.ns.L.ovNoChars))
+  check("Uebersicht: niemand online -> keine gruenen Punkte", not has(out, "|cff44dd66*"))
+
+  g.ns.db.members.Karl = true
+  check("Uebersicht: von Hand eingetragene Namen", has(text(g), "Karl"))
+
+  g.ns.Receive("Gerda", "I", g.now)
+  check("Uebersicht: online gesehener Charakter bekommt den gruenen Punkt", has(text(g), "|cff44dd66*|r Gerda"))
+  advance(80, g)
+  check("Uebersicht: nach Ablauf wieder grau", not has(text(g), "|cff44dd66*|r Gerda"))
+
+  -- Namen mit Sonderzeichen duerfen die Uebersicht nicht zerbrechen (sie werden als Text behandelt).
+  g.ns.InitDB(nil, nil, { { name = "A|cffff0000B", members = {} } })
+  check("Uebersicht: Community-Name unveraendert uebernommen", has(text(g), "A|cffff0000B"))
+
+  g.ns.Slash("communities")
+  check("/rff communities schreibt in den Chat", #g.printed > 0)
+  g.ns.Slash("help")
+  check("/rff help zeigt die Hilfe", g.printed[#g.printed] == g.ns.L.help)
 end
 
 print(("%d Pruefungen, %d Fehler"):format(checks, failures))
