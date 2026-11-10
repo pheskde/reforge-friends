@@ -36,6 +36,26 @@ function ns.Slash(input)
     ns.db.showMinimapButton = on
     if ns.UpdateMinimapButton then ns.UpdateMinimapButton() end
     ns.Print(on and L.minimapOn or L.minimapOff)
+  elseif cmd == "debug" then
+    ns.db.debugSelf = not ns.db.debugSelf
+    if ns.db.debugSelf then ns.db.showPins = true end
+    ns.RefreshMap()
+    if ns.db.debugSelf then
+      local map, x, y = ns.GetPosition()
+      local canvas = WorldMapFrame and (WorldMapFrame.GetCanvas and WorldMapFrame:GetCanvas() or WorldMapFrame.ScrollContainer)
+      ns.Print(("debug: pos=%s/%s/%s worldmap=%s shown=%s canvas=%s mapID=%s"):format(tostring(map), tostring(x), tostring(y),
+        tostring(WorldMapFrame ~= nil), tostring(WorldMapFrame and WorldMapFrame:IsShown()), tostring(canvas ~= nil),
+        tostring(WorldMapFrame and WorldMapFrame.GetMapID and WorldMapFrame:GetMapID())))
+    end
+    ns.Print("debug self pin: " .. (ns.db.debugSelf and "on" or "off") .. " (pins on: " .. tostring(ns.db.showPins) .. ")")
+  elseif cmd == "trace" then
+    ns.db.trace = not ns.db.trace
+    ns.Print("trace: " .. (ns.db.trace and "on" or "off"))
+    if ns.db.trace then
+      ns.Print(("trace: me=%s-%s prefix registered=%s sharing=%s members=%s"):format(tostring(UnitName and UnitName("player")),
+        tostring(GetNormalizedRealmName and GetNormalizedRealmName() or GetRealmName and GetRealmName()), tostring(ns.prefixResult),
+        tostring(ns.db.sharing), table.concat(ns.MemberList(), ",")))
+    end
   elseif cmd == "add" then
     local name, err = ns.AddMember(arg)
     ns.Print(err and L[err]:format(name or arg) or L.added:format(name))
@@ -43,7 +63,7 @@ function ns.Slash(input)
     local name, err = ns.RemoveMember(arg)
     ns.Print(err and L[err]:format(name or arg) or L.removed:format(name))
   elseif cmd == "" or cmd == "window" or cmd == "fenster" then
-    if ns.ToggleOverview then ns.ToggleOverview() else ns.Print(L.help) end
+    if ns.ToggleMenu then ns.ToggleMenu() else ns.Print(L.help) end
   elseif cmd == "communities" then
     for _, line in ipairs(ns.BuildOverview(ns.Now())) do ns.Print(line) end
   elseif cmd == "help" or cmd == "hilfe" then

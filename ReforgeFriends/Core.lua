@@ -18,14 +18,14 @@ local LOCALES = {
     onMap = "on the map", elsewhere = "elsewhere", inInstance = "in an instance", offline = "not seen",
     status = "Sharing: %s, quests: %s, pins: %s", on = "on", off = "off",
     minimapOn = "Minimap button shown.", minimapOff = "Minimap button hidden. /rff minimap on brings it back.",
-    tipShare = "Sharing: %s", tipOnline = "%d of %d members seen", tipLeft = "Left click: sharing on or off", tipRight = "Right click: map pins on or off", tipDrag = "Drag: move the button",
+    tipShare = "Sharing: %s", tipOnline = "%d of %d members seen", tipLeft = "Right click: sharing on or off", tipRight = "Shift+right click: map pins on or off", tipDrag = "Drag: move the button",
     quests = "Open quests (%d):", questsAsk = "Asking for quests...", questsPrivate = "does not share quests", questsNone = "No quests received.",
-    unknownQuest = "Quest %d", noName = "Give a character name.",
+    unknownQuest = "Quest %d", questsMore = "Click for the full list", noName = "Give a character name.",
     tipMembers = "%d other member(s), %d character(s)", tipSeen = "%d character(s) seen online",
     ovTitle = "reforge Friends", ovCommunities = "Your communities (%d)", ovNoData = "No community data yet. The reforge client writes it every 10 minutes and after login; then log in again or /reload. It needs client 0.1.7 or newer.",
     ovNoCommunities = "You are not in a community yet. Create or join one in the reforge client.",
     ovYou = "you", ovNoChars = "no characters reported", ovManual = "Added by hand: %s", ovHint = "Green dot: seen online. Characters appear when the member's reforge client has reported them.",
-    ovSharing = "Sharing: %s  |  Quests: %s", ovWindow = "Overview window", tipOverview = "Shift+left click: overview",
+    menuManual = "Added by hand", menuRemove = "right click: remove", setHeader = "Settings", setShare = "Share my position", setQuests = "Share my quest list", setPins = "Friend pins on map", setMinimap = "Minimap button", addHint = "Add character...", addButton = "Add", menuMembers = "Members", menuHint = "Click a character: open quests", ovSharing = "Sharing: %s  |  Quests: %s", ovWindow = "Overview window", tipOverview = "Left click: community window",
   },
   deDE = {
     help = "/rff (window) | communities | share on|off | quests on|off | pins on|off | minimap on|off | add <Name> | remove <Name> | list | status | help",
@@ -37,14 +37,14 @@ local LOCALES = {
     onMap = "auf der Karte", elsewhere = "woanders", inInstance = "in einer Instanz", offline = "nicht gesehen",
     status = "Teilen: %s, Quests: %s, Pins: %s", on = "an", off = "aus",
     minimapOn = "Minimap-Symbol angezeigt.", minimapOff = "Minimap-Symbol ausgeblendet. /rff minimap on holt es zurück.",
-    tipShare = "Teilen: %s", tipOnline = "%d von %d Mitgliedern gesehen", tipLeft = "Linksklick: Teilen an oder aus", tipRight = "Rechtsklick: Karten-Pins an oder aus", tipDrag = "Ziehen: Symbol verschieben",
+    tipShare = "Teilen: %s", tipOnline = "%d von %d Mitgliedern gesehen", tipLeft = "Rechtsklick: Teilen an oder aus", tipRight = "Shift+Rechtsklick: Karten-Pins an oder aus", tipDrag = "Ziehen: Symbol verschieben",
     quests = "Offene Quests (%d):", questsAsk = "Frage Quests an...", questsPrivate = "teilt keine Quests", questsNone = "Keine Quests erhalten.",
-    unknownQuest = "Quest %d", noName = "Gib einen Charakternamen an.",
+    unknownQuest = "Quest %d", questsMore = "Klick für die ganze Liste", noName = "Gib einen Charakternamen an.",
     tipMembers = "%d weitere(s) Mitglied(er), %d Charakter(e)", tipSeen = "%d Charakter(e) online gesehen",
     ovTitle = "reforge Friends", ovCommunities = "Deine Communities (%d)", ovNoData = "Noch keine Community-Daten. Der reforge-Client schreibt sie alle 10 Minuten und nach dem Login; danach neu einloggen oder /reload. Nötig ist Client 0.1.7 oder neuer.",
     ovNoCommunities = "Du bist noch in keiner Community. Lege im reforge-Client eine an oder tritt einer bei.",
     ovYou = "du", ovNoChars = "keine Charaktere gemeldet", ovManual = "Von Hand eingetragen: %s", ovHint = "Grüner Punkt: online gesehen. Charaktere erscheinen, sobald der reforge-Client des Mitglieds sie gemeldet hat.",
-    ovSharing = "Teilen: %s  |  Quests: %s", ovWindow = "Übersichtsfenster", tipOverview = "Shift+Linksklick: Übersicht",
+    menuManual = "Von Hand eingetragen", menuRemove = "Rechtsklick: entfernen", setHeader = "Einstellungen", setShare = "Meine Position teilen", setQuests = "Meine Questliste teilen", setPins = "Freunde-Pins auf der Karte", setMinimap = "Minimap-Symbol", addHint = "Charakter hinzufügen...", addButton = "Hinzufügen", menuMembers = "Mitglieder", menuHint = "Charakter anklicken: Quests öffnen", ovSharing = "Teilen: %s  |  Quests: %s", ovWindow = "Übersichtsfenster", tipOverview = "Linksklick: Community-Fenster",
   },
 }
 ns.L = LOCALES[GetLocale()] or LOCALES.enUS
@@ -127,6 +127,7 @@ end
 -- I              Position unbekannt (Instanz, Schlachtfeld)
 -- O              Teilen beendet, Pin entfernen
 -- A              Hier, teilt aber nicht (Antwort auf H); der andere darf dann seine Position schicken
+-- S|KLASSE|lvl|%  Klasse (Token), Stufe und Erfahrung in Prozent (leer auf Hoechststufe), geht mit jeder Position raus
 -- QR             Questliste angefragt
 -- Q|i|n|id,id    Questliste, Teil i von n
 -- QN             Questliste wird nicht geteilt
@@ -136,6 +137,20 @@ ns.QUESTS_PER_MESSAGE = 20
 function ns.EncodePosition(mapID, x, y)
   local function q(v) return math.max(0, math.min(10000, math.floor(v * 10000 + 0.5))) end
   return ("P|%d|%d|%d"):format(mapID, q(x), q(y))
+end
+
+function ns.EncodeStatus(class, level, pct)
+  return ("S|%s|%d|%s"):format(class, level, pct and tostring(pct) or "")
+end
+
+-- "Krieger - lvl 32 - 22%" (ohne Prozent auf Hoechststufe). nil, wenn nichts bekannt ist.
+function ns.StatusText(info)
+  if not info or not info.level then return nil end
+  local names = LOCALIZED_CLASS_NAMES_MALE
+  local class = info.class and ((names and names[info.class]) or info.class) or "?"
+  local text = ("%s - lvl %d"):format(class, info.level)
+  if info.pct then text = text .. (" - %d%%"):format(info.pct) end
+  return text
 end
 
 function ns.EncodeQuests(ids)
@@ -161,6 +176,11 @@ function ns.Decode(text)
     map, x, y = tonumber(map), tonumber(x), tonumber(y)
     if not map or x > 10000 or y > 10000 then return nil end
     return { kind = "P", map = map, x = x / 10000, y = y / 10000 }
+  elseif kind == "S" then
+    local class, level, pct = rest:match("^(%u+)|(%d+)|(%d*)$")
+    level, pct = tonumber(level), tonumber(pct)
+    if not class or not level or level < 1 or level > 200 or (pct and pct > 100) then return nil end
+    return { kind = "S", class = class, level = level, pct = pct }
   elseif kind == "I" or kind == "O" or kind == "A" or kind == "QR" or kind == "QN" then
     return { kind = kind }
   elseif kind == "Q" then
@@ -187,6 +207,8 @@ function ns.Receive(sender, text, now)
   local peer = ns.peers[name] or {}
   ns.peers[name] = peer
   peer.seen = now
+  -- Absender mit Realm ("Name-Realm") merken: Antworten gehen an genau diesen Namen, sonst erreicht man Spieler von verbundenen Realms nicht.
+  if sender:find("-", 1, true) then peer.target = sender end
   if msg.kind == "P" then
     peer.map, peer.x, peer.y, peer.instance = msg.map, msg.x, msg.y, false
   elseif msg.kind == "I" then
@@ -194,6 +216,8 @@ function ns.Receive(sender, text, now)
   elseif msg.kind == "O" then
     peer.map, peer.x, peer.y, peer.instance = nil, nil, nil, false
     peer.seen = nil
+  elseif msg.kind == "S" then
+    peer.class, peer.level, peer.pct = msg.class, msg.level, msg.pct
   elseif msg.kind == "QN" then
     peer.questsPrivate, peer.quests, peer.questParts = true, nil, nil
   elseif msg.kind == "Q" then
@@ -272,6 +296,51 @@ function ns.BuildOverview(now)
   lines[#lines + 1] = L.ovSharing:format(ns.db.sharing and L.on or L.off, ns.db.shareQuests and L.on or L.off)
   lines[#lines + 1] = GREY .. L.ovHint .. "|r"
   return lines
+end
+
+-- Zeilen des Minimap-Menues: Community, deine Charaktere, die Charaktere aller Mitglieder. `me` ist der aktuelle Charakter.
+-- kind: header | member | char | text. Char-Zeilen tragen name, online und self (eigener Charakter).
+function ns.BuildMenu(now, me)
+  local L = ns.L
+  local rows = {}
+  local function add(row) rows[#rows + 1] = row end
+  me = ns.NormName(me)
+  local communities = type(ns.communities) == "table" and ns.communities or {}
+  for _, community in ipairs(communities) do
+    add({ kind = "header", text = tostring(community.name) })
+    -- Eigene Charaktere zuerst.
+    local ordered = {}
+    for _, member in ipairs(community.members or {}) do
+      if member.you then table.insert(ordered, 1, member) else ordered[#ordered + 1] = member end
+    end
+    for _, member in ipairs(ordered) do
+      local label = tostring(member.account)
+      if member.you then label = label .. " (" .. L.ovYou .. ")" end
+      add({ kind = "member", text = label })
+      local chars = member.characters or {}
+      if #chars == 0 then add({ kind = "text", text = L.ovNoChars }) end
+      for _, c in ipairs(chars) do
+        local mine = member.you and ns.NormName(c) == me
+        local info = mine and ns.GetStatus and ns.StatusText(ns.OwnInfo()) or ns.StatusText(ns.peers[ns.NormName(c) or ""])
+        add({ kind = "char", name = c, self = mine and true or false, info = info, online = mine or ns.PeerOnline(ns.NormName(c) or "", now) })
+      end
+    end
+  end
+  if #communities == 0 then
+    local list = ns.MemberList()
+    add({ kind = "header", text = L.menuMembers })
+    if #list == 0 then add({ kind = "text", text = L.ovNoData }) end
+    for _, name in ipairs(list) do add({ kind = "char", name = name, self = false, manual = ns.db.members[name] == true, info = ns.StatusText(ns.peers[name]), online = ns.PeerOnline(name, now) }) end
+  else
+    local manual = {}
+    for name in pairs(ns.db.members) do manual[#manual + 1] = name end
+    table.sort(manual)
+    if #manual > 0 then
+      add({ kind = "header", text = L.menuManual })
+      for _, name in ipairs(manual) do add({ kind = "char", name = name, self = false, manual = true, info = ns.StatusText(ns.peers[name]), online = ns.PeerOnline(name, now) }) end
+    end
+  end
+  return rows
 end
 
 -- Zahlen fuer den Tooltip: andere Mitglieder (ohne dich, ueber alle Communities), deren Charaktere und wie viele davon gerade online gesehen wurden.

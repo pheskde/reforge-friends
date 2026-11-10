@@ -16,11 +16,15 @@ function ns.Now()
 end
 
 function ns.SendAddon(text, target)
+  local peer = ns.peers[ns.NormName(target) or ""]
+  if peer and peer.target then target = peer.target end
+  local result
   if C_ChatInfo and C_ChatInfo.SendAddonMessage then
-    C_ChatInfo.SendAddonMessage(ns.PREFIX, text, "WHISPER", target)
+    result = C_ChatInfo.SendAddonMessage(ns.PREFIX, text, "WHISPER", target)
   elseif SendAddonMessage then
-    SendAddonMessage(ns.PREFIX, text, "WHISPER", target)
+    result = SendAddonMessage(ns.PREFIX, text, "WHISPER", target)
   end
+  if ns.db and ns.db.trace then ns.Print(("trace >> %s: %s (result %s)"):format(tostring(target), text, tostring(result))) end
 end
 
 -- Karte und Koordinaten (0..1). nil, wenn das Spiel keine Position liefert (Instanz, Schlachtfeld, Ladebildschirm).
@@ -33,6 +37,25 @@ function ns.GetPosition()
   local x, y = pos:GetXY()
   if not x or (x == 0 and y == 0) then return nil end
   return map, x, y
+end
+
+-- Klasse (Token), Stufe und Erfahrung in Prozent des eigenen Charakters. Prozent nil auf Hoechststufe.
+function ns.GetStatus()
+  if not (UnitClass and UnitLevel) then return nil end
+  local _, class = UnitClass("player")
+  local level = UnitLevel("player")
+  if not class or not level or level < 1 then return nil end
+  local pct
+  local max = UnitXPMax and UnitXPMax("player")
+  if max and max > 0 and not (IsPlayerAtEffectiveMaxLevel and IsPlayerAtEffectiveMaxLevel()) then
+    pct = math.min(100, math.floor((UnitXP("player") or 0) / max * 100))
+  end
+  return class, level, pct
+end
+
+function ns.OwnInfo()
+  local class, level, pct = ns.GetStatus()
+  return class and { class = class, level = level, pct = pct } or nil
 end
 
 -- IDs der offenen Quests im Questlog (ohne Ueberschriften).
@@ -81,6 +104,13 @@ local function positionMessage()
   return "I"
 end
 
+-- Position plus Stufe an eine bestimmte Gegenstelle (Antworten).
+local function sendPosition(name)
+  ns.SendAddon((positionMessage()), name)
+  local class, level, pct = ns.GetStatus()
+  if class then ns.SendAddon(ns.EncodeStatus(class, level, pct), name) end
+end
+
 -- Wird bei jedem Takt aufgerufen (Map.lua/Comm-Frame). Rechnet selbst mit den Intervallen.
 function ns.Tick(now)
   if not ns.db then return end
@@ -104,6 +134,8 @@ function ns.Tick(now)
   if text ~= state.lastPos or now - state.lastSent >= ns.HEARTBEAT then
     state.lastPos, state.lastSent = text, now
     broadcast(text, now)
+    local class, level, pct = ns.GetStatus()
+    if class then broadcast(ns.EncodeStatus(class, level, pct), now) end
   end
 end
 
@@ -133,17 +165,21 @@ end
 -- Empfangen -------------------------------------------------------------------------
 
 function ns.OnMessage(sender, text, now)
+  if ns.db.trace then
+    ns.Print(("trace << %s: %s (%s)"):format(tostring(sender), tostring(text),
+      ns.IsMember(sender) and "member" or "IGNORED: not in list, normalized as " .. tostring(ns.NormName(sender))))
+  end
   local wasOnline = ns.PeerOnline(ns.NormName(sender) or "", now)
   local peer, msg, name = ns.Receive(sender, text, now)
   if not peer then return end
   if not wasOnline and ns.db.sharing and msg.kind ~= "H" and msg.kind ~= "O" and msg.kind ~= "QR" then
     -- Gegenstelle taucht gerade auf (Antwort auf unser Hallo): Position sofort schicken statt erst beim naechsten Takt.
-    ns.SendAddon((positionMessage()), name)
+    sendPosition(name)
   end
   if msg.kind == "H" then
     -- Antwort immer: wer nicht teilt, sagt wenigstens "hier", damit der andere seine Position schicken darf.
     if ns.db.sharing then
-      ns.SendAddon((positionMessage()), name)
+      sendPosition(name)
     else
       ns.SendAddon("A", name)
     end
@@ -177,7 +213,7 @@ frame:SetScript("OnEvent", function(_, event, a, b, c, d)
   if event == "ADDON_LOADED" and a == "ReforgeFriends" then
     ReforgeFriendsDB = ns.InitDB(ReforgeFriendsDB, ReforgeFriendsRoster, ReforgeFriendsCommunities)
     if C_ChatInfo and C_ChatInfo.RegisterAddonMessagePrefix then
-      C_ChatInfo.RegisterAddonMessagePrefix(ns.PREFIX)
+      ns.prefixResult = C_ChatInfo.RegisterAddonMessagePrefix(ns.PREFIX)
     elseif RegisterAddonMessagePrefix then
       RegisterAddonMessagePrefix(ns.PREFIX)
     end

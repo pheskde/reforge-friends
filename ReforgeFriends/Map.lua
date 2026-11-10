@@ -24,20 +24,19 @@ end
 
 local function showTooltip(pin)
   local name = pin.name
-  local peer = ns.peers[name]
+  local peer = pin.peer or ns.peers[name]
   if not peer then return end
   GameTooltip:SetOwner(pin, "ANCHOR_RIGHT")
   GameTooltip:AddLine(name, 1, 1, 1)
   local info = peer.map and C_Map and C_Map.GetMapInfo and C_Map.GetMapInfo(peer.map)
+  local status = ns.StatusText(peer)
+  if status then GameTooltip:AddLine(status, 0.95, 0.48, 0.17) end
   if info and info.name then GameTooltip:AddLine(info.name, 0.8, 0.8, 0.8) end
   if peer.questsPrivate then
     GameTooltip:AddLine(ns.L.questsPrivate, 0.6, 0.6, 0.6)
   elseif peer.quests then
     GameTooltip:AddLine(ns.L.quests:format(#peer.quests), 0.95, 0.48, 0.17)
-    for i, id in ipairs(peer.quests) do
-      if i > 25 then GameTooltip:AddLine("...", 0.6, 0.6, 0.6) break end
-      GameTooltip:AddLine(ns.QuestTitle(id), 0.9, 0.9, 0.9)
-    end
+    GameTooltip:AddLine(ns.L.questsMore, 0.6, 0.6, 0.6)
   elseif pin.asked then
     GameTooltip:AddLine(ns.L.questsAsk, 0.6, 0.6, 0.6)
   end
@@ -63,7 +62,7 @@ local function getPin(canvas, index)
     showTooltip(self)
   end)
   pin:SetScript("OnLeave", function() GameTooltip:Hide() end)
-  pin:SetScript("OnClick", function(self) ask(self) showTooltip(self) end)
+  pin:SetScript("OnClick", function(self) ask(self) showTooltip(self) if ns.ShowQuests then ns.ShowQuests(self.name, self.peer) end end)
   pins[index] = pin
   return pin
 end
@@ -72,6 +71,7 @@ function ns.RefreshMap()
   for _, pin in pairs(shown) do pin:Hide() end
   shown = {}
   if not WorldMapFrame or not WorldMapFrame:IsShown() or not ns.db or not ns.db.showPins then return end
+  if ns.db.debugSelf and not WorldMapFrame.__rffLogged then WorldMapFrame.__rffLogged = true ns.Print("debug: RefreshMap running with map open") end
   local canvas = WorldMapFrame.GetCanvas and WorldMapFrame:GetCanvas() or WorldMapFrame.ScrollContainer
   local displayed = WorldMapFrame.GetMapID and WorldMapFrame:GetMapID()
   if not canvas or not displayed then return end
@@ -79,16 +79,31 @@ function ns.RefreshMap()
   local scale = canvas.GetScale and canvas:GetScale() or 1
   if scale <= 0 then scale = 1 end
   local used = 0
-  for _, name in ipairs(ns.VisiblePeers(ns.Now())) do
-    local x, y = ns.ProjectToMap(ns.peers[name], displayed)
+  local entries = {}
+  for _, name in ipairs(ns.VisiblePeers(ns.Now())) do entries[#entries + 1] = { name = name, peer = ns.peers[name] } end
+  -- Debug: die eigene Position als Pin (/rff debug), um Karte und Projektion ohne zweiten Spieler zu pruefen.
+  if ns.db.debugSelf then
+    local map, sx, sy = ns.GetPosition()
+    if map then
+      entries[#entries + 1] = { name = (UnitName("player") or "me") .. " (debug)", peer = { map = map, x = sx, y = sy, quests = ns.GetQuestIDs(), class = (ns.OwnInfo() or {}).class, level = (ns.OwnInfo() or {}).level, pct = (ns.OwnInfo() or {}).pct }, self = true }
+    else
+      ns.Print("debug: keine eigene Position (Instanz/Ladebildschirm?)")
+    end
+  end
+  for _, e in ipairs(entries) do
+    local name = e.name
+    local x, y = ns.ProjectToMap(e.peer, displayed)
     if x then
       used = used + 1
       local pin = getPin(canvas, used)
       pin.name = name
+      pin.peer = e.self and e.peer or nil
+      if e.self then pin.tex:SetVertexColor(1, 0.2, 0.2) else pin.tex:SetVertexColor(1, 1, 1) end
       pin.label:SetText(name)
       pin:SetScale(1 / scale)
       pin:ClearAllPoints()
-      pin:SetPoint("CENTER", canvas, "TOPLEFT", x * w, -y * h)
+      -- Offsets zaehlen in der Skalierung des Pins (1/scale): zurueckrechnen, sonst sitzt er versetzt.
+      pin:SetPoint("CENTER", canvas, "TOPLEFT", x * w * scale, -y * h * scale)
       pin:Show()
       shown[name] = pin
     end

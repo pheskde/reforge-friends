@@ -1,4 +1,4 @@
--- Minimap-Symbol: Linksklick schaltet das Teilen, Rechtsklick die Pins, Ziehen verschiebt es um die Minimap.
+-- Minimap-Symbol: Linksklick oeffnet das Community-Fenster, Rechtsklick schaltet das Teilen, Shift+Rechtsklick die Pins, Ziehen verschiebt es um die Minimap.
 local _, ns = ...
 
 -- Versatz des Symbols vom Minimap-Mittelpunkt fuer einen Winkel in Grad (0 = rechts, gegen den Uhrzeigersinn).
@@ -24,8 +24,8 @@ local function tooltip(self)
   local members, characters, seen = ns.CommunityStats(ns.Now())
   GameTooltip:AddLine(L.tipMembers:format(members, characters), 0.8, 0.8, 0.8)
   GameTooltip:AddLine(L.tipSeen:format(seen), seen > 0 and 0.27 or 0.6, seen > 0 and 0.87 or 0.6, seen > 0 and 0.4 or 0.6)
-  GameTooltip:AddLine(L.tipLeft, 0.6, 0.6, 0.6)
   GameTooltip:AddLine(L.tipOverview, 0.6, 0.6, 0.6)
+  GameTooltip:AddLine(L.tipLeft, 0.6, 0.6, 0.6)
   GameTooltip:AddLine(L.tipRight, 0.6, 0.6, 0.6)
   GameTooltip:AddLine(L.tipDrag, 0.6, 0.6, 0.6)
   GameTooltip:Show()
@@ -69,9 +69,9 @@ local function create()
   border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
 
   button:SetScript("OnClick", function(self, mouse)
-    if mouse == "LeftButton" and IsShiftKeyDown() and ns.ToggleOverview then
-      ns.ToggleOverview()
-    elseif mouse == "RightButton" then
+    if mouse == "LeftButton" then
+      if ns.ToggleMenu then ns.ToggleMenu() end
+    elseif IsShiftKeyDown() then
       ns.db.showPins = not ns.db.showPins
       ns.RefreshMap()
       ns.Print(ns.db.showPins and ns.L.pinsOn or ns.L.pinsOff)

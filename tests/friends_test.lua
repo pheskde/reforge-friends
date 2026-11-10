@@ -27,7 +27,7 @@ ERR_CHAT_PLAYER_NOT_FOUND_S = "No player named '%s' is currently playing."
 local function newGame(name, opts)
   opts = opts or {}
   local ns = {}
-  for _, file in ipairs({ "Core.lua", "Comm.lua", "Minimap.lua", "Overview.lua", "Slash.lua" }) do
+  for _, file in ipairs({ "Core.lua", "Comm.lua", "Minimap.lua", "Slash.lua" }) do
     local chunk = assert(loadfile(ROOT .. file))
     chunk("ReforgeFriends", ns)
   end
@@ -234,7 +234,7 @@ do
   g.ns.Slash("hilfe")
   check("Hilfe wird gezeigt", g.printed[#g.printed] == g.ns.L.help)
   local opened
-  g.ns.ToggleOverview = function() opened = true end
+  g.ns.ToggleMenu = function() opened = true end
   g.ns.Slash("")
   check("/rff ohne Argument oeffnet das Fenster", opened == true)
 end
