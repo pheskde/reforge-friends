@@ -3,7 +3,7 @@
 ## Notes: Shows the position of your community friends on the map, without a group. Shares only with your own member list.
 ## Notes-deDE: Zeigt die Position deiner Community-Freunde auf der Karte, ohne Gruppe. Geteilt wird nur mit deiner eigenen Mitgliederliste.
 ## Author: reforge.win
-## Version: 0.5.0
+## Version: 0.5.1
 ## OptionalDeps: ReforgeFriendsRoster
 ## SavedVariables: ReforgeFriendsDB
 

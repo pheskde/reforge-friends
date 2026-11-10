@@ -45,7 +45,7 @@ refresh = function()
   if not frame or not frame:IsShown() then return end
   local L = ns.L
   for _, c in ipairs(checks) do c.box:SetChecked(c.get() and true or false) end
-  local data = ns.BuildMenu(ns.Now(), UnitName and UnitName("player") or "")
+  local data = ns.BuildMenu(ns.Now(), ns.OwnName())
   for i, d in ipairs(data) do
     local row = getRow(i)
     row.data = d

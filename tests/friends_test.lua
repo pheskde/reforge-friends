@@ -88,7 +88,9 @@ do
   for _, t in ipairs(parts) do longest = math.max(longest, #t) end
   check("Quests: jeder Teil passt in eine Nachricht (255)", longest <= 255)
   check("Quests: leere Liste ist ein gueltiger Teil", ns.Decode(ns.EncodeQuests({})[1]).total == 1)
-  check("Name: Realm und Schreibweise", ns.NormName("bERT-Realm") == "Bert")
+  check("Name: Schreibweise", ns.NormName("bERT") == "Bert")
+  check("Name: Nachname im Realm-Slot bleibt erhalten", ns.NormName("bERT-kimidori") == "Bert-Kimidori")
+  check("Name: Leerzeichen trennt Vor- und Nachname", ns.NormName("bert kimidori") == "Bert-Kimidori")
 end
 
 -- Mitglieder ------------------------------------------------------------------------
@@ -105,6 +107,15 @@ do
   ns.RemoveMember("Bert")
   check("Entfernen", not ns.IsMember("Bert"))
   check("Liste sortiert", table.concat(ns.MemberList(), ",") == "Karl")
+  -- Forever: Nachname im Realm-Slot
+  local f = newGame("Anna", { roster = { "Aldric-Sternenfall", "Eoîn-Sternenfall" } }).ns
+  check("Nachname: voller Name ist Mitglied", f.IsMember("Aldric-Sternenfall") and f.IsMember("aldric-STERNENFALL"))
+  check("Nachname: gleicher Vorname mit anderem Nachnamen ist kein Mitglied", not f.IsMember("Aldric-Kimidori"))
+  check("Nachname: Schluessel ist der volle Name", f.MemberKey("Aldric-Sternenfall") == "Aldric-Sternenfall")
+  check("Nachname: Vorname allein ist kein Mitglied", not f.IsMember("Aldric"))
+  local bare = newGame("Anna", { roster = { "Aldric" } }).ns
+  check("Nur Vorname im Roster gilt fuer jeden Nachnamen", bare.MemberKey("Aldric-Sternenfall") == "Aldric")
+  check("SameCharacter: ohne Nachnamen genuegt der Vorname", f.SameCharacter("Nagaru", "Nagaru-Kimidori") and not f.SameCharacter("Nagaru-Scott", "Nagaru-Kimidori"))
   check("Offline-Meldung nur fuer Mitglieder", ns.IsOfflineNotice("No player named 'Karl' is currently playing.")
     and not ns.IsOfflineNotice("No player named 'Fremder' is currently playing.")
     and not ns.IsOfflineNotice("etwas anderes"))

@@ -27,6 +27,15 @@ function ns.SendAddon(text, target)
   if ns.db and ns.db.trace then ns.Print(("trace >> %s: %s (result %s)"):format(tostring(target), text, tostring(result))) end
 end
 
+-- Voller Name des eigenen Charakters ("Vorname-Nachname"; auf Forever steckt der Nachname im Realm-Slot von UnitFullName).
+function ns.OwnName()
+  local name, extra
+  if UnitFullName then name, extra = UnitFullName("player") end
+  name = name or (UnitName and UnitName("player")) or ""
+  if extra and extra ~= "" then name = name .. "-" .. extra end
+  return name
+end
+
 -- Karte und Koordinaten (0..1). nil, wenn das Spiel keine Position liefert (Instanz, Schlachtfeld, Ladebildschirm).
 function ns.GetPosition()
   if not (C_Map and C_Map.GetBestMapForUnit and C_Map.GetPlayerMapPosition) then return nil end
@@ -169,7 +178,7 @@ function ns.OnMessage(sender, text, now)
     ns.Print(("trace << %s: %s (%s)"):format(tostring(sender), tostring(text),
       ns.IsMember(sender) and "member" or "IGNORED: not in list, normalized as " .. tostring(ns.NormName(sender))))
   end
-  local wasOnline = ns.PeerOnline(ns.NormName(sender) or "", now)
+  local wasOnline = ns.PeerOnline(ns.MemberKey(sender) or "", now)
   local peer, msg, name = ns.Receive(sender, text, now)
   if not peer then return end
   if not wasOnline and ns.db.sharing and msg.kind ~= "H" and msg.kind ~= "O" and msg.kind ~= "QR" then

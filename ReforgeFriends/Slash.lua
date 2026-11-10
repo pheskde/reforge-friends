@@ -55,6 +55,10 @@ function ns.Slash(input)
       ns.Print(("trace: me=%s-%s prefix registered=%s sharing=%s members=%s"):format(tostring(UnitName and UnitName("player")),
         tostring(GetNormalizedRealmName and GetNormalizedRealmName() or GetRealmName and GetRealmName()), tostring(ns.prefixResult),
         tostring(ns.db.sharing), table.concat(ns.MemberList(), ",")))
+      local n, r = "?", "?"
+      if UnitFullName then n, r = UnitFullName("player") end
+      ns.Print(("trace: UnitFullName=[%s][%s] GetUnitName=[%s] PVPName=[%s]"):format(tostring(n), tostring(r),
+        tostring(GetUnitName and GetUnitName("player", true)), tostring(UnitPVPName and UnitPVPName("player"))))
     end
   elseif cmd == "add" then
     local name, err = ns.AddMember(arg)

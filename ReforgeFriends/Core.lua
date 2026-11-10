@@ -53,12 +53,18 @@ function ns.Print(text)
   DEFAULT_CHAT_FRAME:AddMessage("|cfff27a2reforge:|r " .. text)
 end
 
--- Namen vergleichen wir ohne Realm und ohne Gross-/Kleinschreibung.
+-- Namen vergleichen wir ohne Gross-/Kleinschreibung. Auf Forever hat jeder Charakter einen Nachnamen ("Nagaru Kimidori"); die
+-- Schnittstelle liefert ihn im Realm-Slot, also "Nagaru-Kimidori". Ein Name besteht deshalb aus bis zu zwei Teilen: "Vorname-Nachname".
+local function capital(part)
+  return part:sub(1, 1):upper() .. part:sub(2):lower()
+end
+
 function ns.NormName(name)
   if type(name) ~= "string" then return nil end
-  name = name:match("^[^-]+") or name
-  if name == "" then return nil end
-  return name:sub(1, 1):upper() .. name:sub(2):lower()
+  local first, second = name:gsub("%s+", "-"):match("^([^-]+)-?([^-]*)")
+  if not first then return nil end
+  if second ~= "" then return capital(first) .. "-" .. capital(second) end
+  return capital(first)
 end
 
 -- Einstellungen und Mitglieder -------------------------------------------------
@@ -89,10 +95,27 @@ function ns.InitDB(saved, roster, communities)
   return ns.db
 end
 
-function ns.IsMember(name)
+-- Eintrag der Mitgliederliste zu einem Namen. Passt der volle Name nicht, gilt ein Eintrag nur mit Vornamen (von Hand eingetragen oder
+-- aus einem aelteren Roster); ein Realm hinter dem Namen schadet so nicht.
+function ns.MemberKey(name)
   local n = ns.NormName(name)
-  if not n then return false end
-  return ns.roster[n] == true or ns.db.members[n] == true
+  if not n then return nil end
+  if ns.roster[n] or ns.db.members[n] then return n end
+  local first = n:match("^[^-]+")
+  if first ~= n and (ns.roster[first] or ns.db.members[first]) then return first end
+  return nil
+end
+
+function ns.IsMember(name)
+  return ns.MemberKey(name) ~= nil
+end
+
+-- Zwei Namen meinen denselben Charakter; fehlt einer der Nachnamen, genuegt der Vorname.
+function ns.SameCharacter(a, b)
+  a, b = ns.NormName(a), ns.NormName(b)
+  if not a or not b then return false end
+  if a == b then return true end
+  return (not a:find("-", 1, true) or not b:find("-", 1, true)) and a:match("^[^-]+") == b:match("^[^-]+")
 end
 
 function ns.MemberList()
@@ -108,7 +131,7 @@ end
 function ns.AddMember(name)
   local n = ns.NormName(name)
   if not n then return nil, "noName" end
-  if ns.IsMember(n) then return n, "already" end
+  if ns.roster[n] or ns.db.members[n] then return n, "already" end
   ns.db.members[n] = true
   return n
 end
@@ -200,8 +223,8 @@ ns.PEER_TTL = 75
 
 -- Merkt eine empfangene Nachricht. Gibt Gegenstelle, Nachricht und Name zurueck, nil wenn der Absender kein Mitglied ist oder Muell schickt.
 function ns.Receive(sender, text, now)
-  local name = ns.NormName(sender)
-  if not name or not ns.IsMember(name) then return nil end
+  local name = ns.MemberKey(sender)
+  if not name then return nil end
   local msg = ns.Decode(text)
   if not msg then return nil end
   local peer = ns.peers[name] or {}
@@ -304,7 +327,6 @@ function ns.BuildMenu(now, me)
   local L = ns.L
   local rows = {}
   local function add(row) rows[#rows + 1] = row end
-  me = ns.NormName(me)
   local communities = type(ns.communities) == "table" and ns.communities or {}
   for _, community in ipairs(communities) do
     add({ kind = "header", text = tostring(community.name) })
@@ -320,7 +342,7 @@ function ns.BuildMenu(now, me)
       local chars = member.characters or {}
       if #chars == 0 then add({ kind = "text", text = L.ovNoChars }) end
       for _, c in ipairs(chars) do
-        local mine = member.you and ns.NormName(c) == me
+        local mine = member.you and ns.SameCharacter(c, me)
         local info = mine and ns.GetStatus and ns.StatusText(ns.OwnInfo()) or ns.StatusText(ns.peers[ns.NormName(c) or ""])
         add({ kind = "char", name = c, self = mine and true or false, info = info, online = mine or ns.PeerOnline(ns.NormName(c) or "", now) })
       end
